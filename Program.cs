@@ -1,12 +1,16 @@
 ﻿using SupplyManagement.Models;
 using SupplyManagement.Data;
+using System.Threading.Tasks;
 using System;
+using System.Linq;
+using System.IO;
+using System.Text;
 
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-       SupplyDbContext context=new SupplyDbContext();
+        SupplyDbContext context = new SupplyDbContext();
 
         while (true)
         {
@@ -22,34 +26,55 @@ class Program
             Console.WriteLine("8. Filter Transactions");
             Console.WriteLine("9. Group Transactions");
             Console.WriteLine("10. Join Product & Supplier Info");
-            Console.WriteLine("11. Dynamic Product Filter (Expression Trees)");
+            Console.WriteLine("11. Dynamic Product Filter");
             Console.WriteLine("12. Update Product");
             Console.WriteLine("13. Delete Product");
-            Console.WriteLine("14. Order Product (Update Supplier & Warehouse)");
-            Console.WriteLine("15. Exit");
-            Console.Write("Select an option: ");
+            Console.WriteLine("14. Order Product");
+            Console.WriteLine("15. Export Products to CSV");
+            Console.WriteLine("16. Export Transactions to CSV");
+            Console.WriteLine("17. Export All Data to csv");
+            Console.WriteLine("18. Exit");
+            Console.Write("\nSelect an option: ");
 
             string? choice = Console.ReadLine();
 
             switch (choice)
             {
-                case "1": AddWarehouse(context); break;
-                case "2": AddSupplier(context); break;
-                case "3": AddProduct(context); break;
-                case "4": RecordTransaction(context); break;
-                case "5": ViewProductsByWarehouse(context); break;
-                case "6": ViewTransactionsByProduct(context); break;
-                case "7": ShowReports(context); break;
-                case "8": FilterTransactions(context); break;
-                case "9": GroupTransactions(context); break;
-                case "10": JoinProductSupplierInfo(context); break;
-                case "11": DynamicProductFilter(context); break;
-                case "12": UpdateProduct(context); break;
-                case "13": DeleteProduct(context); break;
-                case "14": OrderProduct(context); break;
-                case "15": UpdateProduct(context);break;
-                case "16": DeleteProduct(context) break;
-                case "17": return;
+                case "1":
+                    await AddWarehouse(context); break;
+                case "2":
+                    await AddSupplier(context); break;
+                case "3":
+                    await AddProduct(context); break;
+                case "4":
+                    await RecordTransaction(context); break;
+                case "5":
+                    ViewProductsByWarehouse(context); break;
+                case "6":
+                    ViewTransactionsByProduct(context); break;
+                case "7":
+                    ShowReports(context); break;
+                case "8":
+                    FilterTransactions(context); break;
+                case "9":
+                    GroupTransactions(context); break;
+                case "10":
+                    JoinProductSupplierInfo(context); break;
+                case "11":
+                    DynamicProductFilter(context); break;
+                case "12":
+                    await UpdateProduct(context); break;
+                case "13":
+                    await DeleteProduct(context); break;
+                case "14":
+                    await OrderProduct(context); break;
+                case "15":
+                    await ExportProductsToCSV(context); break;
+                case "16":
+                    await ExportTransactionsToCSV(context); break;
+                case "17":
+                    await ExportAllDataAsync(context); break;
+                case "18": return;
                 default:
                     Console.WriteLine("Invalid choice. Press Enter to try again.");
                     Console.ReadLine();
@@ -58,30 +83,44 @@ class Program
         }
     }
 
-    
-    static void AddWarehouse(SupplyDbContext context) {
+    static void Pause()
+    {
+        Console.WriteLine("\nPress Enter to continue...");
+        Console.ReadLine();
+    }
+
+    static async Task AddWarehouse(SupplyDbContext context)
+    {
         Console.Write("Enter Warehouse Name: ");
         string? name = Console.ReadLine();
         Console.Write("Enter Location: ");
         string? location = Console.ReadLine();
-        var warehouse = new Warehouse { Name = name!, Location = location! };
-        context.Warehouses.Add(warehouse);
-        context.SaveChanges();
-        Console.WriteLine(" Warehouse added successfully.");
-    }
-    static void AddSupplier(SupplyDbContext context) {
 
+        var warehouse = new Warehouse { Name = name!, Location = location! };
+        await context.Warehouses.AddAsync(warehouse);
+        await context.SaveChangesAsync();
+
+        Console.WriteLine("\n Warehouse added successfully.");
+        Pause();
+    }
+
+    static async Task AddSupplier(SupplyDbContext context)
+    {
         Console.Write("Enter Supplier Name: ");
         string? name = Console.ReadLine();
         Console.Write("Enter Contact Info: ");
         string? contact = Console.ReadLine();
-        var supplier = new Supplier { Name = name!, Contact = contact! };
-        context.Suppliers.Add(supplier);
-        context.SaveChanges();
-        Console.WriteLine(" Supplier added successfully.");
-    }
-    static void AddProduct(SupplyDbContext context) {
 
+        var supplier = new Supplier { Name = name!, Contact = contact! };
+        await context.Suppliers.AddAsync(supplier);
+        await context.SaveChangesAsync();
+
+        Console.WriteLine("\n Supplier added successfully.");
+        Pause();
+    }
+
+    static async Task AddProduct(SupplyDbContext context)
+    {
         Console.Write("Enter Product Name: ");
         string? name = Console.ReadLine();
         Console.Write("Enter Price: ");
@@ -92,45 +131,51 @@ class Program
         int warehouseId = Convert.ToInt32(Console.ReadLine());
         Console.Write("Enter Supplier ID: ");
         int supplierId = Convert.ToInt32(Console.ReadLine());
+
         var product = new Product
         {
             Name = name!,
             Price = price,
             StockQuantity = stock,
             WarehouseId = warehouseId,
-
             SupplierId = supplierId
         };
-        context.Products.Add(product);
-        context.SaveChanges();
 
-        Console.WriteLine(" Product added successfully.");
+        await context.Products.AddAsync(product);
+        await context.SaveChangesAsync();
 
+        Console.WriteLine("\n Product added successfully.");
+        Pause();
     }
-    static void RecordTransaction(SupplyDbContext context)
+
+    static async Task RecordTransaction(SupplyDbContext context)
     {
         Console.Write("Enter Product ID: ");
         int productId = Convert.ToInt32(Console.ReadLine());
         Console.Write("Enter Quantity: ");
         int quantity = Convert.ToInt32(Console.ReadLine());
         Console.Write("Enter Transaction Type (IN/OUT): ");
-        string? type = Console.ReadLine();
+        string? type = Console.ReadLine().ToUpper().Trim();
         Console.Write("Enter Date (yyyy-MM-dd): ");
         DateTime date = DateTime.Parse(Console.ReadLine() ?? "");
-        var product = context.Products.Find(productId);
+
+        var product = await context.Products.FindAsync(productId);
 
         if (product == null)
         {
             Console.WriteLine(" Product not found.");
+            Pause();
             return;
         }
 
         if (type == "OUT" && product.StockQuantity < quantity)
         {
             Console.WriteLine(" Not enough stock.");
+            Pause();
             return;
         }
-        var transaction = new InventoryTransaction
+
+        var transaction = new Transaction
         {
             ProductId = productId,
             Quantity = quantity,
@@ -138,13 +183,14 @@ class Program
             Date = date
         };
 
-        context.InventoryTransactions.Add(transaction);
+        await context.Transactions.AddAsync(transaction);
         product.StockQuantity += (type == "IN" ? quantity : -quantity);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
-        Console.WriteLine(" Transaction recorded and stock updated.");
-
+        Console.WriteLine("\n Transaction recorded and stock updated.");
+        Pause();
     }
+
     static void ViewProductsByWarehouse(SupplyDbContext context)
     {
         Console.Write("Enter Warehouse ID: ");
@@ -153,40 +199,54 @@ class Program
         var products = context.Products
             .Where(p => p.WarehouseId == warehouseId)
             .ToList();
-
+        if (products.Count <= 0)
+        {
+            Console.WriteLine("There are nor transactions recorded for this product");
+            Pause();
+            return;
+        }
         Console.WriteLine($"\nProducts in Warehouse {warehouseId}:");
         foreach (var product in products)
         {
             Console.WriteLine($"- {product.Name} | Price: {product.Price} | Stock: {product.StockQuantity}");
         }
 
+        Pause();
     }
+
     static void ViewTransactionsByProduct(SupplyDbContext context)
     {
         Console.Write("Enter Product ID: ");
         int productId = Convert.ToInt32(Console.ReadLine());
 
-        var transactions = context.InventoryTransactions
+        var transactions = context.Transactions
             .Where(t => t.ProductId == productId)
             .ToList();
-
+        if (transactions.Count <= 0)
+        {
+            Console.WriteLine("There are nor transactions recorded for this product");
+            Pause();
+            return;
+        }
         Console.WriteLine($"\nTransactions for Product {productId}:");
         foreach (var t in transactions)
         {
-            Console.WriteLine($"TransactionType- {t.TransactionType} | Qty: {t.Quantity} | Date: {t.Date.ToShortDateString()}");
+            Console.WriteLine($"{t.TransactionType} | Qty: {t.Quantity} | Date: {t.Date.ToShortDateString()}");
         }
 
+        Pause();
     }
-    static void UpdateProduct(SupplyDbContext context)
+
+    static async Task UpdateProduct(SupplyDbContext context)
     {
         Console.Write("Enter Product ID to Update: ");
         int productId = Convert.ToInt32(Console.ReadLine());
 
-        var product = context.Products.Find(productId);
+        var product = await context.Products.FindAsync(productId);
         if (product == null)
         {
             Console.WriteLine(" Product not found.");
-           
+            Pause();
             return;
         }
 
@@ -201,29 +261,31 @@ class Program
         if (decimal.TryParse(priceInput, out decimal newPrice)) product.Price = newPrice;
         if (int.TryParse(stockInput, out int newStock)) product.StockQuantity = newStock;
 
-        context.SaveChanges();
-        Console.WriteLine(" Product updated successfully.");
-        
+        await context.SaveChangesAsync();
+        Console.WriteLine("\n Product updated successfully.");
+        Pause();
     }
-    static void DeleteProduct(SupplyDbContext context)
+
+    static async Task DeleteProduct(SupplyDbContext context)
     {
         Console.Write("Enter Product ID to Delete: ");
         int productId = Convert.ToInt32(Console.ReadLine());
 
-        var product = context.Products.Find(productId);
+        var product = await context.Products.FindAsync(productId);
         if (product == null)
         {
             Console.WriteLine(" Product not found.");
-            
+            Pause();
             return;
         }
 
         context.Products.Remove(product);
-        context.SaveChanges();
+        await context.SaveChangesAsync();
 
-        Console.WriteLine(" Product deleted successfully.");
-        
+        Console.WriteLine("\n Product deleted successfully.");
+        Pause();
     }
+
     static void ShowReports(SupplyDbContext context)
     {
         Console.WriteLine("1. Total Stock per Warehouse");
@@ -265,7 +327,9 @@ class Program
             }
         }
 
+        Pause();
     }
+
     static void FilterTransactions(SupplyDbContext context)
     {
         Console.Write("Enter Transaction Type (IN/OUT or leave blank): ");
@@ -273,7 +337,7 @@ class Program
         Console.Write("Enter Minimum Quantity (or leave blank): ");
         string? qtyInput = Console.ReadLine();
 
-        var query = context.InventoryTransactions.AsQueryable();
+        var query = context.Transactions.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(type))
             query = query.Where(t => t.TransactionType == type);
@@ -282,14 +346,22 @@ class Program
             query = query.Where(t => t.Quantity >= minQty);
 
         var results = query.ToList();
+        if (results.Count <= 0)
+        {
+            Console.WriteLine("No transactions under this");
+            Pause();
+            return;
 
-        Console.WriteLine("\n Filtered Transactions:");
+        }
+        Console.WriteLine("\nFiltered Transactions:");
         foreach (var t in results)
         {
             Console.WriteLine($"{t.TransactionType} | Qty: {t.Quantity} | Date: {t.Date.ToShortDateString()}");
         }
 
+        Pause();
     }
+
     static void GroupTransactions(SupplyDbContext context)
     {
         Console.WriteLine("Group Transactions by:");
@@ -300,7 +372,7 @@ class Program
 
         if (choice == "1")
         {
-            var grouped = context.InventoryTransactions
+            var grouped = context.Transactions
                 .GroupBy(t => t.ProductId)
                 .Select(g => new
                 {
@@ -309,7 +381,7 @@ class Program
                     Count = g.Count()
                 });
 
-            Console.WriteLine("\n Transactions Grouped by Product:");
+            Console.WriteLine("\nTransactions Grouped by Product:");
             foreach (var item in grouped)
             {
                 Console.WriteLine($"Product {item.ProductId}: {item.TotalQuantity} units in {item.Count} transactions");
@@ -317,7 +389,7 @@ class Program
         }
         else if (choice == "2")
         {
-            var grouped = context.InventoryTransactions
+            var grouped = context.Transactions
                 .GroupBy(t => new { t.Date.Year, t.Date.Month })
                 .Select(g => new
                 {
@@ -326,36 +398,39 @@ class Program
                     Count = g.Count()
                 });
 
-            Console.WriteLine("\n Transactions Grouped by Month-Year:");
+            Console.WriteLine("\nTransactions Grouped by Month-Year:");
             foreach (var item in grouped)
             {
                 Console.WriteLine($"{item.Period}: {item.TotalQuantity} units in {item.Count} transactions");
             }
         }
 
-       
+        Pause();
     }
+
     static void JoinProductSupplierInfo(SupplyDbContext context)
     {
         var joined = context.Products
             .Join(context.Suppliers,
-                  product => product.SupplierId,
-                  supplier => supplier.SupplierId,
-                  (product, supplier) => new
+                  p => p.SupplierId,
+                  s => s.SupplierId,
+                  (p, s) => new
                   {
-                      ProductName = product.Name,
-                      Price = product.Price,
-                      SupplierName = supplier.Name,
-                      Contact = supplier.Contact
+                      p.Name,
+                      p.Price,
+                      SupplierName = s.Name,
+                      s.Contact
                   });
 
         Console.WriteLine("\nProduct & Supplier Info:");
         foreach (var item in joined)
         {
-            Console.WriteLine($"Product: {item.ProductName} | Price: {item.Price} | Supplier: {item.SupplierName} | Contact: {item.Contact}");
+            Console.WriteLine($"Product: {item.Name} | Price: {item.Price} | Supplier: {item.SupplierName} | Contact: {item.Contact}");
         }
 
+        Pause();
     }
+
     static void DynamicProductFilter(SupplyDbContext context)
     {
         Console.Write("Enter minimum price (or leave blank): ");
@@ -373,35 +448,38 @@ class Program
 
         var results = query.ToList();
 
-        Console.WriteLine("\n Filtered Products:");
+        Console.WriteLine("\nFiltered Products:");
         foreach (var p in results)
         {
             Console.WriteLine($"Product: {p.Name} | Price: {p.Price} | Stock: {p.StockQuantity}");
         }
 
+        Pause();
     }
 
-    static void OrderProduct(SupplyDbContext context)
+    static async Task OrderProduct(SupplyDbContext context)
     {
         Console.Write("Enter Product ID to Order: ");
         int productId = Convert.ToInt32(Console.ReadLine());
         Console.Write("Enter Quantity: ");
         int quantity = Convert.ToInt32(Console.ReadLine());
 
-        var product = context.Products.Find(productId);
+        var product = await context.Products.FindAsync(productId);
         if (product == null)
         {
-            Console.WriteLine(" Product not found.");          
+            Console.WriteLine(" Product not found.");
+            Pause();
             return;
         }
 
         if (product.StockQuantity < quantity)
         {
-            Console.WriteLine(" Not enough stock to fulfill the order.");    
-           return;
+            Console.WriteLine(" Not enough stock to fulfill the order.");
+            Pause();
+            return;
         }
 
-        var transaction = new InventoryTransaction
+        var transaction = new Transaction
         {
             ProductId = productId,
             Quantity = quantity,
@@ -410,10 +488,55 @@ class Program
         };
 
         product.StockQuantity -= quantity;
-        context.InventoryTransactions.Add(transaction);
-        context.SaveChanges();
+        await context.Transactions.AddAsync(transaction);
+        await context.SaveChangesAsync();
 
-        Console.WriteLine(" Order placed and transaction recorded.");
-     
+        Console.WriteLine("\n Order placed and transaction recorded.");
+        Pause();
+    }
+
+    static async Task ExportAllDataAsync(SupplyDbContext context)
+    {
+        var exportProductsTask = Task.Run(() => ExportProductsToCSV(context));
+        var exportTransactionsTask = Task.Run(() => ExportTransactionsToCSV(context));
+
+        await Task.WhenAll(exportProductsTask, exportTransactionsTask);
+
+        Console.WriteLine("\nAll data exported successfully.");
+        Pause();
+    }
+    static async Task ExportTransactionsToCSV(SupplyDbContext context)
+    {
+        string filePath = "transactions.csv";
+        var transactions = context.Transactions.ToList();
+        var csv = new StringBuilder();
+
+        csv.AppendLine("Transaction ID,Product ID,Quantity,Type,Date");
+        foreach (var t in transactions)
+        {
+            csv.AppendLine($"{t.TransactionId},{t.ProductId},{t.Quantity},{t.TransactionType},{t.Date:yyyy-MM-dd}");
+        }
+        File.WriteAllText(filePath, csv.ToString());
+  Console.WriteLine($"\nTransaction data exported to {filePath}");
+        Pause();
+
+    }
+    static async Task ExportProductsToCSV(SupplyDbContext context)
+    {
+        string filePath = "products.csv";
+        var products = context.Products.ToList();
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Product ID,Name,Price,Stock Quantity,Warehouse ID,Supplier ID");
+
+        foreach (var p in products)
+        {
+            csv.AppendLine($"{p.Id},{p.Name},{p.Price},{p.StockQuantity},{p.WarehouseId},{p.SupplierId}");
+        }
+
+        await File.WriteAllTextAsync(filePath, csv.ToString());
+        Console.WriteLine($"\nProduct data exported to {filePath}");
+        Pause();
     }
 }
+

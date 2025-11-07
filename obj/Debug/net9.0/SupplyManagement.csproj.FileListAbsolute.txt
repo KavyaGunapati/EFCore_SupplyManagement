@@ -144,3 +144,4 @@ C:\Users\GunapatiKavya\Desktop\DotNet\EfCore\SupplyManagement\obj\Debug\net9.0\r
 C:\Users\GunapatiKavya\Desktop\DotNet\EfCore\SupplyManagement\obj\Debug\net9.0\SupplyManagement.pdb
 C:\Users\GunapatiKavya\Desktop\DotNet\EfCore\SupplyManagement\obj\Debug\net9.0\SupplyManagement.genruntimeconfig.cache
 C:\Users\GunapatiKavya\Desktop\DotNet\EfCore\SupplyManagement\obj\Debug\net9.0\ref\SupplyManagement.dll
+C:\Users\GunapatiKavya\Desktop\DotNet\EfCore\SupplyManagement\obj\Debug\net9.0\SupplyManagement.sourcelink.json
